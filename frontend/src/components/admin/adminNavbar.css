@@ -1,0 +1,62 @@
+.scanza-admin-navbar-root {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  background-color: rgb(var(--scanza-surface) / 0.9);
+  border-bottom: 1px solid rgb(var(--scanza-border));
+}
+
+.scanza-admin-navbar-toggle-btn {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
+}
+.scanza-admin-navbar-toggle-btn:hover {
+  transform: scale(1.1) rotate(-6deg);
+}
+
+.scanza-admin-navbar-avatar {
+  perspective: 300px;
+}
+.scanza-admin-navbar-avatar-inner {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-style: preserve-3d;
+}
+.scanza-admin-navbar-avatar:hover .scanza-admin-navbar-avatar-inner {
+  transform: rotateY(15deg) scale(1.08);
+}
+
+.scanza-admin-navbar-dropdown-panel {
+  animation: scanza-admin-navbar-dropdown-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top right;
+}
+@keyframes scanza-admin-navbar-dropdown-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.scanza-admin-navbar-dropdown-item {
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+.scanza-admin-navbar-dropdown-item:hover {
+  transform: translateX(3px);
+}
+
+.scanza-admin-navbar-search-wrapper {
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.scanza-admin-navbar-search-wrapper:focus-within {
+  box-shadow: 0 0 0 4px rgb(var(--scanza-primary) / 0.15);
+  border-color: rgb(var(--scanza-primary));
+}
+
+.scanza-admin-navbar-bell {
+  transition: transform 0.2s ease;
+}
+.scanza-admin-navbar-bell:hover {
+  transform: rotate(-10deg) scale(1.1);
+}
+.scanza-admin-navbar-badge {
+  animation: scanza-admin-navbar-badge-pulse 1.8s ease-in-out infinite;
+}
+@keyframes scanza-admin-navbar-badge-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(var(--scanza-danger) / 0.5); }
+  50% { box-shadow: 0 0 0 5px rgb(var(--scanza-danger) / 0); }
+}

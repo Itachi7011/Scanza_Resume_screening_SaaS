@@ -1,0 +1,35 @@
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+python-multipart==0.0.9
+pydantic==2.13.4
+pydantic-settings==2.15.0
+
+# Text extraction
+pdfplumber==0.11.1
+PyMuPDF==1.28.2
+python-docx==1.1.2
+# pdfminer.six is intentionally NOT pinned here — pdfplumber pins it exactly
+# (==20231228) as a transitive dependency, and pinning our own conflicting
+# version here breaks pip's resolver. We only need `pdfminer.high_level.
+# extract_text`, which the version pdfplumber brings in already provides.
+
+# OCR fallback for scanned/image-only PDFs
+pytesseract==0.3.13
+pdf2image==1.17.0
+Pillow==11.3.0
+
+# NLP / NER (name detection, org/date entities, custom skill patterns)
+spacy==3.8.13
+
+# Structured field parsing
+phonenumbers==8.13.40
+pycountry==24.6.1
+email-validator==2.2.0
+python-dateutil==2.9.0.post0
+geonamescache==2.0.0
+
+# Fuzzy matching for skills/cities against known taxonomy (typo tolerant)
+rapidfuzz==3.14.5
+
+# Language detection (resume written in a non-English language)
+langdetect==1.0.9

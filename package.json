@@ -1,0 +1,24 @@
+{
+  "name": "scanza",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Scanza — AI-powered resume screening SaaS (monorepo)",
+  "workspaces": [
+    "frontend",
+    "services/auth-service",
+    "services/main-service",
+    "packages/database"
+  ],
+  "scripts": {
+    "dev:auth": "npm run dev --workspace=services/auth-service",
+    "dev:main": "npm run dev --workspace=services/main-service",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "db:generate": "npm run generate --workspace=packages/database",
+    "db:migrate": "npm run migrate --workspace=packages/database",
+    "db:seed": "npm run seed --workspace=packages/database",
+    "db:studio": "npm run studio --workspace=packages/database"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}

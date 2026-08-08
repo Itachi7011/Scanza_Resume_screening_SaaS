@@ -1,0 +1,104 @@
+/* Scanza Navbar — unique class names to avoid any collision with other components */
+
+.scanza-navbar-root {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  background-color: rgb(var(--scanza-surface) / 0.82);
+  border-bottom: 1px solid rgb(var(--scanza-border));
+}
+
+.scanza-navbar-logo-mark {
+  perspective: 400px;
+}
+.scanza-navbar-logo-icon {
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-style: preserve-3d;
+}
+.scanza-navbar-logo-mark:hover .scanza-navbar-logo-icon {
+  transform: rotateY(20deg) rotateX(8deg) scale(1.08);
+}
+
+/* Underline-grow effect for top-level nav links */
+.scanza-navbar-link {
+  position: relative;
+}
+.scanza-navbar-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 0%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgb(var(--scanza-primary)), rgb(var(--scanza-accent)));
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scanza-navbar-link:hover::after,
+.scanza-navbar-link[data-active="true"]::after {
+  width: 100%;
+}
+
+/* Dropdown panel entrance */
+.scanza-navbar-dropdown-panel {
+  transform-origin: top center;
+  animation: scanza-navbar-dropdown-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes scanza-navbar-dropdown-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Nested (layered) sub-dropdown slides in from the right */
+.scanza-navbar-subdropdown-panel {
+  animation: scanza-navbar-subdropdown-in 0.18s ease-out;
+}
+@keyframes scanza-navbar-subdropdown-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Subtle 3D lift on dropdown item hover */
+.scanza-navbar-dropdown-item {
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+.scanza-navbar-dropdown-item:hover {
+  transform: translateX(3px);
+}
+
+/* Search input glow-on-focus */
+.scanza-navbar-search-input {
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, width 0.25s ease;
+}
+.scanza-navbar-search-input:focus {
+  box-shadow: 0 0 0 4px rgb(var(--scanza-primary) / 0.15);
+  border-color: rgb(var(--scanza-primary));
+}
+
+/* Notification bell shake on new-notification pulse */
+.scanza-navbar-bell-ring {
+  animation: scanza-navbar-bell-shake 0.5s ease-in-out;
+}
+@keyframes scanza-navbar-bell-shake {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(12deg); }
+  40% { transform: rotate(-10deg); }
+  60% { transform: rotate(6deg); }
+  80% { transform: rotate(-4deg); }
+}
+
+.scanza-navbar-badge-pulse {
+  animation: scanza-navbar-badge-pulse 1.8s ease-in-out infinite;
+}
+@keyframes scanza-navbar-badge-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(var(--scanza-danger) / 0.5); }
+  50% { box-shadow: 0 0 0 5px rgb(var(--scanza-danger) / 0); }
+}
+
+/* Mobile slide-in panel */
+.scanza-navbar-mobile-panel {
+  animation: scanza-navbar-mobile-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes scanza-navbar-mobile-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}

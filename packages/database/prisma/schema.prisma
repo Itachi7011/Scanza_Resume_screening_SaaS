@@ -1,0 +1,596 @@
+// ============================================================================
+// Scanza — Shared Prisma Schema
+// Single Postgres database, imported by both auth-service and main-service.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------
+// ENUMS
+// -----------------------------------------------------------------------
+
+enum AccountRole {
+  SUPER_ADMIN   // you — full platform control
+  ADMIN         // staff admins — dashboard, moderation, no billing/danger-zone
+  CLIENT_OWNER  // owns a Client (SaaS customer) workspace, manages API keys
+  CLIENT_MEMBER // teammate under a Client workspace
+  END_USER      // person who uploaded/owns a resume directly on scanza.dev
+}
+
+enum AccountStatus {
+  ACTIVE
+  BLOCKED
+  PENDING_VERIFICATION
+  DELETED
+}
+
+enum ResumeSource {
+  DIRECT_UPLOAD   // uploaded on scanza.dev homepage
+  CLIENT_API      // submitted through a client's integration via API key
+  CLIENT_WIDGET   // submitted through embeddable Scanza widget on client's site
+}
+
+enum ExtractionEngine {
+  CLAUDE_LLM
+  FALLBACK_WORKER
+  HYBRID
+}
+
+enum ExtractionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum SkillProficiency {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+  UNKNOWN
+}
+
+enum PlanTier {
+  FREE
+  STARTER
+  GROWTH
+  ENTERPRISE
+}
+
+enum NotificationType {
+  RESUME_PROCESSED
+  RESUME_FAILED
+  API_KEY_CREATED
+  API_KEY_REVOKED
+  ACCOUNT_BLOCKED
+  ACCOUNT_UNBLOCKED
+  PLAN_UPGRADED
+  SYSTEM_ANNOUNCEMENT
+  SECURITY_ALERT
+  TEAM_INVITE_SENT
+  TEAM_INVITE_ACCEPTED
+  JOB_MATCH_COMPUTED
+}
+
+enum OtpPurpose {
+  EMAIL_VERIFICATION
+  LOGIN_2FA
+  PASSWORD_RESET
+}
+
+enum AuditAction {
+  USER_BLOCKED
+  USER_UNBLOCKED
+  USER_ROLE_CHANGED
+  API_KEY_REVOKED
+  CLIENT_SUSPENDED
+  CLIENT_REACTIVATED
+  ADMIN_LOGIN
+  SETTINGS_CHANGED
+}
+
+enum TeamInviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+// -----------------------------------------------------------------------
+// AUTH / ACCOUNTS
+// -----------------------------------------------------------------------
+
+model Account {
+  id                String        @id @default(uuid())
+  email             String        @unique
+  passwordHash      String
+  fullName          String
+  avatarUrl         String?
+  role              AccountRole   @default(END_USER)
+  status            AccountStatus @default(PENDING_VERIFICATION)
+  isEmailVerified   Boolean       @default(false)
+  twoFactorEnabled  Boolean       @default(false)
+
+  // theme + preference persisted server-side so it follows the user across devices
+  preferredTheme    String        @default("light") // light | dark | ocean | sunset
+
+  clientId          String?
+  client            Client?       @relation(fields: [clientId], references: [id])
+
+  resumes           Resume[]
+  notifications     Notification[]
+  otpTokens         OtpToken[]
+  refreshTokens     RefreshToken[]
+  auditLogsActed    AuditLog[]     @relation("AuditActor")
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  lastLoginAt       DateTime?
+
+  @@index([role])
+  @@index([status])
+  @@index([clientId])
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  accountId   String
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  tokenHash   String   @unique
+  userAgent   String?
+  ipAddress   String?
+  revoked     Boolean  @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([accountId])
+}
+
+model OtpToken {
+  id          String     @id @default(uuid())
+  accountId   String
+  account     Account    @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  codeHash    String
+  purpose     OtpPurpose
+  consumed    Boolean    @default(false)
+  attempts    Int        @default(0)
+  expiresAt   DateTime
+  createdAt   DateTime   @default(now())
+
+  @@index([accountId, purpose])
+}
+
+// -----------------------------------------------------------------------
+// SAAS CLIENTS (companies embedding Scanza on their own site)
+// -----------------------------------------------------------------------
+
+model Client {
+  id             String     @id @default(uuid())
+  companyName    String
+  websiteUrl     String?
+  planTier       PlanTier   @default(FREE)
+  monthlyQuota   Int        @default(50)
+  usedThisCycle  Int        @default(0)
+  isSuspended    Boolean    @default(false)
+  allowedOrigins String[]   @default([]) // CORS allow-list for widget embeds
+  webhookUrl     String?    // where Scanza POSTs completed extraction results
+
+  // Billing — Stripe is optional, same graceful-fallback pattern as SendGrid/
+  // Claude: without keys configured, plan changes are handled manually by an
+  // admin instead of self-serve checkout, and nothing breaks.
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  billingEmail         String?
+
+  accounts       Account[]
+  apiKeys        ApiKey[]
+  resumes        Resume[]
+  jobPostings    JobPosting[]
+  teamInvites    TeamInvite[]
+
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([isSuspended])
+}
+
+model TeamInvite {
+  id         String           @id @default(uuid())
+  clientId   String
+  client     Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  email      String
+  role       AccountRole      @default(CLIENT_MEMBER)
+  tokenHash  String           @unique
+  status     TeamInviteStatus @default(PENDING)
+  invitedBy  String
+  expiresAt  DateTime
+  createdAt  DateTime         @default(now())
+
+  @@index([clientId])
+  @@index([email])
+}
+
+model ApiKey {
+  id           String    @id @default(uuid())
+  clientId     String
+  client       Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  label        String    // e.g. "Production", "Staging widget"
+  keyPrefix    String    // first 8 chars shown in dashboard, e.g. "scz_live_a1b2"
+  keyHash      String    @unique // sha256 of full key — full key shown once on creation
+  isActive     Boolean   @default(true)
+  lastUsedAt   DateTime?
+  requestCount Int       @default(0)
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
+
+  @@index([clientId])
+}
+
+// -----------------------------------------------------------------------
+// RESUMES + EXTRACTION
+// -----------------------------------------------------------------------
+
+model Resume {
+  id                String            @id @default(uuid())
+
+  // ownership — exactly one of these is meaningfully set depending on source
+  ownerAccountId    String?
+  ownerAccount      Account?          @relation(fields: [ownerAccountId], references: [id])
+  clientId          String?
+  client            Client?           @relation(fields: [clientId], references: [id])
+  externalUserRef   String?           // client's own user id, for CLIENT_API/WIDGET submissions
+
+  source            ResumeSource      @default(DIRECT_UPLOAD)
+
+  originalFileName  String
+  cloudinaryUrl     String
+  cloudinaryPublicId String
+  fileSizeBytes     Int
+  mimeType          String
+
+  extractionEngine  ExtractionEngine?
+  extractionStatus  ExtractionStatus  @default(PENDING)
+  extractionError   String?
+  rawText           String?           // extracted plaintext, used for re-processing
+
+  profile           ExtractedProfile?
+  skills            ResumeSkill[]
+  experiences       Experience[]
+  educations        Education[]
+  scoreResult       ScoreResult?
+  suggestions       Suggestion[]
+  certifications    Certification[]
+  projects          ResumeProject[]
+  languages         ResumeLanguage[]
+  awards            ResumeAward[]
+  publications      ResumePublication[]
+  jobMatches        JobMatch[]
+
+  // Populated from the resume-worker / Claude's richer analysis — kept as
+  // flexible JSON since their shape is intentionally allowed to evolve
+  // without a migration every time (see resume-worker's AtsIssue/CareerInsights).
+  atsIssues         Json?
+  careerInsights    Json?
+  detectedLanguage  String?           // ISO 639-1 code of the language the resume itself is written in
+  workMode          String?           // REMOTE | HYBRID | OPEN_TO_RELOCATION, from the location extractor
+
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([ownerAccountId])
+  @@index([clientId])
+  @@index([extractionStatus])
+}
+
+model Certification {
+  id           String   @id @default(uuid())
+  resumeId     String
+  resume       Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  name         String
+  issuer       String?
+  issueDate    DateTime?
+  expiryDate   DateTime?
+  credentialId String?
+
+  @@index([resumeId])
+}
+
+model ResumeProject {
+  id           String   @id @default(uuid())
+  resumeId     String
+  resume       Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?
+  technologies String[] @default([])
+  url          String?
+
+  @@index([resumeId])
+}
+
+model ResumeLanguage {
+  id          String  @id @default(uuid())
+  resumeId    String
+  resume      Resume  @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  name        String
+  proficiency String?
+
+  @@index([resumeId])
+}
+
+model ResumeAward {
+  id          String    @id @default(uuid())
+  resumeId    String
+  resume      Resume    @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  title       String
+  issuer      String?
+  date        DateTime?
+  description String?
+
+  @@index([resumeId])
+}
+
+model ResumePublication {
+  id        String    @id @default(uuid())
+  resumeId  String
+  resume    Resume    @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  title     String
+  publisher String?
+  date      DateTime?
+  url       String?
+
+  @@index([resumeId])
+}
+
+model ExtractedProfile {
+  id            String   @id @default(uuid())
+  resumeId      String   @unique
+  resume        Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  fullName      String?
+  email         String?
+  phone         String?
+  age           Int?
+  dateOfBirth   DateTime?
+  headline      String?  // e.g. "Senior Frontend Engineer"
+  summary       String?
+
+  country       String?
+  countryCode   String?
+  state         String?
+  city          String?
+  addressLine   String?
+  postalCode    String?
+
+  linkedinUrl   String?
+  githubUrl     String?
+  portfolioUrl  String?
+  twitterUrl    String?
+  allEmails     String[] @default([])
+  allPhones     String[] @default([])
+
+  totalExperienceYears Float?
+  confidenceScore      Float?  // 0-1, how confident the extractor was overall
+
+  updatedAt     DateTime @updatedAt
+}
+
+model Experience {
+  id           String    @id @default(uuid())
+  resumeId     String
+  resume       Resume    @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  company      String?
+  title        String?
+  location     String?
+  startDate    DateTime?
+  endDate      DateTime?
+  isCurrent    Boolean   @default(false)
+  description  String?
+  order        Int       @default(0)
+
+  @@index([resumeId])
+}
+
+model Education {
+  id            String    @id @default(uuid())
+  resumeId      String
+  resume        Resume    @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  institution   String?
+  degree        String?
+  fieldOfStudy  String?
+  startDate     DateTime?
+  endDate       DateTime?
+  grade         String?
+  order         Int       @default(0)
+
+  @@index([resumeId])
+}
+
+// -----------------------------------------------------------------------
+// SKILLS DATABASE (categorized, hierarchical)
+// -----------------------------------------------------------------------
+
+model SkillCategory {
+  id           String          @id @default(uuid())
+  name         String          // e.g. "Frontend Development"
+  slug         String          @unique
+  parentId     String?
+  parent       SkillCategory?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children     SkillCategory[] @relation("CategoryTree")
+  icon         String?         // lucide-react icon name, used by frontend
+  order        Int             @default(0)
+
+  skills       Skill[]
+
+  @@index([parentId])
+}
+
+model Skill {
+  id           String        @id @default(uuid())
+  categoryId   String
+  category     SkillCategory @relation(fields: [categoryId], references: [id])
+  name         String        @unique
+  aliases      String[]      @default([]) // e.g. ["ReactJS", "React.js"] all -> "React"
+  isTrending   Boolean       @default(false)
+
+  resumeLinks  ResumeSkill[]
+
+  @@index([categoryId])
+}
+
+model ResumeSkill {
+  id             String            @id @default(uuid())
+  resumeId       String
+  resume         Resume            @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  skillId        String
+  skill          Skill             @relation(fields: [skillId], references: [id])
+  proficiency    SkillProficiency  @default(UNKNOWN)
+  yearsOfUse     Float?
+  mentionCount   Int               @default(1)
+  sourceContext  String?           // snippet of the resume text it was found in
+
+  @@unique([resumeId, skillId])
+  @@index([resumeId])
+  @@index([skillId])
+}
+
+// -----------------------------------------------------------------------
+// SCORING + SUGGESTIONS
+// -----------------------------------------------------------------------
+
+// -----------------------------------------------------------------------
+// JOB POSTINGS + CANDIDATE MATCHING (the "middleman" hiring-pipeline layer)
+// -----------------------------------------------------------------------
+
+enum JobPostingStatus {
+  DRAFT
+  OPEN
+  CLOSED
+}
+
+model JobPosting {
+  id            String           @id @default(uuid())
+  clientId      String
+  client        Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  title         String
+  department    String?
+  location      String?
+  description   String           // full job description text, used for match scoring
+  requiredSkillIds String[]      @default([]) // Skill ids explicitly required, weighted higher in matching
+  status        JobPostingStatus @default(DRAFT)
+
+  matches       JobMatch[]
+
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([clientId])
+  @@index([status])
+}
+
+model JobMatch {
+  id              String     @id @default(uuid())
+  jobPostingId    String
+  jobPosting      JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  resumeId        String
+  resume          Resume     @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  matchScore      Int        // 0-100
+  matchedSkillIds String[]   @default([])
+  missingSkillIds String[]   @default([])
+  breakdown       Json?      // explainable sub-scores, same philosophy as ScoreResult
+
+  computedAt      DateTime   @default(now())
+
+  @@unique([jobPostingId, resumeId])
+  @@index([jobPostingId])
+  @@index([resumeId])
+}
+
+model ScoreResult {
+  id                  String   @id @default(uuid())
+  resumeId            String   @unique
+  resume              Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  overallScore        Int      // 0-100
+  completenessScore   Int
+  skillsScore         Int
+  experienceScore     Int
+  formattingScore     Int
+  keywordScore        Int
+
+  breakdown           Json     // detailed sub-scores, kept flexible on purpose
+  computedAt          DateTime @default(now())
+}
+
+model Suggestion {
+  id          String   @id @default(uuid())
+  resumeId    String
+  resume      Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  category    String   // e.g. "Formatting", "Skills", "Impact/Quantification"
+  severity    String   // "critical" | "warning" | "tip"
+  message     String
+  order       Int      @default(0)
+
+  createdAt   DateTime @default(now())
+
+  @@index([resumeId])
+}
+
+// -----------------------------------------------------------------------
+// NOTIFICATIONS + ADMIN
+// -----------------------------------------------------------------------
+
+model Notification {
+  id          String            @id @default(uuid())
+  accountId   String
+  account     Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  title       String
+  message     String
+  isRead      Boolean           @default(false)
+  metadata    Json?
+  createdAt   DateTime          @default(now())
+
+  @@index([accountId, isRead])
+}
+
+model AuditLog {
+  id           String       @id @default(uuid())
+  actorId      String
+  actor        Account      @relation("AuditActor", fields: [actorId], references: [id])
+  action       AuditAction
+  targetType   String       // e.g. "Account", "Client", "ApiKey"
+  targetId     String?
+  details      Json?
+  ipAddress    String?
+  createdAt    DateTime     @default(now())
+
+  @@index([actorId])
+  @@index([action])
+}
+
+// -----------------------------------------------------------------------
+// PLATFORM SETTINGS (singleton row, editable from admin panel)
+// -----------------------------------------------------------------------
+
+model PlatformSetting {
+  id                     String   @id @default("singleton")
+  maintenanceMode        Boolean  @default(false)
+  allowNewSignups        Boolean  @default(true)
+  freeMonthlyQuota       Int      @default(50)
+  maxUploadSizeMb        Int      @default(10)
+  announcementBanner     String?
+  updatedAt              DateTime @updatedAt
+}

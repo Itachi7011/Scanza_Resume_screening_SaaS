@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   Scanza theme system — 4 themes, one set of CSS variables each.
+   Switching themes is just changing [data-theme] on <html>; every component
+   using the scanza-* Tailwind color tokens updates instantly, everywhere,
+   with no per-component theme logic. See src/context/ThemeContext.tsx.
+   ========================================================================== */
+
+:root,
+[data-theme="light"] {
+  --scanza-bg: 250 250 252;
+  --scanza-surface: 255 255 255;
+  --scanza-surface-raised: 255 255 255;
+  --scanza-border: 228 228 235;
+  --scanza-text: 23 23 32;
+  --scanza-text-muted: 100 100 115;
+  --scanza-primary: 79 70 229;
+  --scanza-primary-hover: 67 56 202;
+  --scanza-accent: 168 85 247;
+  --scanza-success: 34 197 94;
+  --scanza-warning: 202 138 4;
+  --scanza-danger: 220 38 38;
+  --scanza-shadow: 15 15 25;
+}
+
+[data-theme="dark"] {
+  --scanza-bg: 10 10 16;
+  --scanza-surface: 20 20 30;
+  --scanza-surface-raised: 28 28 42;
+  --scanza-border: 45 45 62;
+  --scanza-text: 240 240 245;
+  --scanza-text-muted: 160 160 178;
+  --scanza-primary: 129 140 248;
+  --scanza-primary-hover: 165 175 250;
+  --scanza-accent: 192 132 252;
+  --scanza-success: 74 222 128;
+  --scanza-warning: 250 204 21;
+  --scanza-danger: 248 113 113;
+  --scanza-shadow: 0 0 0;
+}
+
+/* "Ocean" — cool teal/cyan, bright */
+[data-theme="ocean"] {
+  --scanza-bg: 240 249 250;
+  --scanza-surface: 255 255 255;
+  --scanza-surface-raised: 255 255 255;
+  --scanza-border: 199 228 232;
+  --scanza-text: 12 40 45;
+  --scanza-text-muted: 80 120 128;
+  --scanza-primary: 6 148 162;
+  --scanza-primary-hover: 5 122 133;
+  --scanza-accent: 14 165 233;
+  --scanza-success: 16 150 105;
+  --scanza-warning: 180 100 6;
+  --scanza-danger: 190 30 30;
+  --scanza-shadow: 6 40 45;
+}
+
+/* "Sunset" — warm coral/amber, dark base */
+[data-theme="sunset"] {
+  --scanza-bg: 30 17 21;
+  --scanza-surface: 44 24 28;
+  --scanza-surface-raised: 56 30 35;
+  --scanza-border: 88 46 46;
+  --scanza-text: 253 240 235;
+  --scanza-text-muted: 212 172 162;
+  --scanza-primary: 249 115 22;
+  --scanza-primary-hover: 253 146 60;
+  --scanza-accent: 236 72 153;
+  --scanza-success: 74 222 128;
+  --scanza-warning: 250 204 21;
+  --scanza-danger: 248 113 113;
+  --scanza-shadow: 0 0 0;
+}
+
+* {
+  border-color: rgb(var(--scanza-border));
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: rgb(var(--scanza-bg));
+  color: rgb(var(--scanza-text));
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Smooth theme/color transitions everywhere, without animating layout props (perf-safe) */
+.scanza-theme-transition,
+.scanza-theme-transition * {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: rgb(var(--scanza-bg));
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--scanza-border));
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--scanza-text-muted));
+}
+
+/* Shared focus ring, accessible + on-brand */
+.scanza-focus-ring:focus-visible {
+  outline: 2px solid rgb(var(--scanza-primary));
+  outline-offset: 2px;
+}
+
+/* Gradient text used sparingly for hero headlines / brand marks */
+.scanza-gradient-text {
+  background: linear-gradient(135deg, rgb(var(--scanza-primary)), rgb(var(--scanza-accent)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}

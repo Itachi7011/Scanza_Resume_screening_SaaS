@@ -1,0 +1,55 @@
+.scanza-admin-sidebar-root {
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scanza-admin-sidebar-root[data-expanded="true"] {
+  width: 260px;
+}
+.scanza-admin-sidebar-root[data-expanded="false"] {
+  width: 76px;
+}
+
+.scanza-admin-sidebar-label {
+  transition: opacity 0.2s ease, width 0.3s ease;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.scanza-admin-sidebar-root[data-expanded="false"] .scanza-admin-sidebar-label {
+  opacity: 0;
+  width: 0;
+}
+
+.scanza-admin-sidebar-item {
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.scanza-admin-sidebar-item:hover {
+  transform: translateX(2px);
+}
+
+.scanza-admin-sidebar-submenu {
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scanza-admin-sidebar-submenu[data-open="false"] {
+  max-height: 0;
+}
+.scanza-admin-sidebar-submenu[data-open="true"] {
+  max-height: 500px;
+}
+
+.scanza-admin-sidebar-chevron {
+  transition: transform 0.25s ease;
+}
+.scanza-admin-sidebar-chevron[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+.scanza-admin-sidebar-tooltip {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  opacity: 0;
+  transform: translateX(-6px);
+  pointer-events: none;
+}
+.scanza-admin-sidebar-item:hover .scanza-admin-sidebar-tooltip {
+  opacity: 1;
+  transform: translateX(0);
+}

@@ -1,0 +1,26 @@
+node_modules/
+dist/
+build/
+.next/
+out/
+
+.env
+.env.local
+*.env
+!*.env.example
+
+*.log
+.DS_Store
+
+# Prisma
+packages/database/generated/
+
+# Python
+services/resume-worker/__pycache__/
+services/resume-worker/venv/
+services/resume-worker/*.pyc
+
+# IDE
+.vscode/
+.idea/
+.venv

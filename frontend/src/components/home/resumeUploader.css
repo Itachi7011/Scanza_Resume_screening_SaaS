@@ -1,0 +1,27 @@
+.scanza-uploader-dropzone {
+  transition: border-color 0.25s ease, background-color 0.25s ease, transform 0.2s ease;
+}
+.scanza-uploader-dropzone[data-dragging="true"] {
+  border-color: rgb(var(--scanza-primary));
+  background-color: rgb(var(--scanza-primary) / 0.06);
+  transform: scale(1.01);
+}
+
+.scanza-uploader-icon-bounce {
+  animation: scanza-uploader-bounce 2.4s ease-in-out infinite;
+}
+@keyframes scanza-uploader-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.scanza-uploader-progress-bar {
+  transition: width 0.4s ease;
+}
+
+.scanza-uploader-spinner {
+  animation: scanza-uploader-spin 1s linear infinite;
+}
+@keyframes scanza-uploader-spin {
+  to { transform: rotate(360deg); }
+}

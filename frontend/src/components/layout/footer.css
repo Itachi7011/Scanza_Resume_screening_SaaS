@@ -1,0 +1,38 @@
+.scanza-footer-root {
+  border-top: 1px solid rgb(var(--scanza-border));
+  background-color: rgb(var(--scanza-surface));
+}
+
+.scanza-footer-columns {
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+.scanza-footer-columns[data-collapsed="true"] {
+  max-height: 0;
+  opacity: 0;
+}
+.scanza-footer-columns[data-collapsed="false"] {
+  max-height: 1200px;
+  opacity: 1;
+}
+
+.scanza-footer-toggle-btn {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
+}
+.scanza-footer-toggle-btn[data-collapsed="true"] svg {
+  transform: rotate(180deg);
+}
+
+.scanza-footer-scroll-top {
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
+}
+.scanza-footer-scroll-top:hover {
+  transform: translateY(-4px) scale(1.05);
+}
+
+.scanza-footer-social-icon {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease, background-color 0.2s ease;
+}
+.scanza-footer-social-icon:hover {
+  transform: translateY(-3px) rotate(-6deg);
+}
